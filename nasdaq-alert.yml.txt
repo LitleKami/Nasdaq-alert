@@ -1,0 +1,32 @@
+name: nasdaq-alert
+on:
+  schedule:
+    - cron: "*/5 13-21 * * 1-5"   # every 5 min, Mon-Fri, ~market hours (UTC)
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install yfinance requests
+      - id: run
+        run: python nasdaq_alert.py
+        env:
+          TARGET: "26300"
+          DIRECTION: "above"
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+      - if: steps.run.outputs.hit == 'true'
+        run: gh workflow disable nasdaq-alert.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
